@@ -16,12 +16,17 @@ public enum DataPersistenceError: Error {
   case noContentsAtPath(String)
 }
 
+protocol DataPersistenceDelegate: class {
+    func didDeleteItem<T>(_ persistenceHelper: DataPersistence<T>, item: T)
+}
 
 class DataPersistence<T: Codable & Equatable> {
   
   private let filename: String
   
   private var items: [T]
+    
+  weak var delegate: DataPersistenceDelegate?
       
   public init(filename: String) {
     self.filename = filename
@@ -94,9 +99,11 @@ class DataPersistence<T: Codable & Equatable> {
        }
   // Delete
   public func deleteItem(at index: Int) throws {
-    items.remove(at: index)
+    let deletedItem = items.remove(at: index)
+
     do {
       try saveItemsToDocumentsDirectory()
+        delegate?.didDeleteItem(self, item: deletedItem)
     } catch {
       throw DataPersistenceError.deletingError
     }
